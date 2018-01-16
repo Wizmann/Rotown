@@ -63,6 +63,10 @@
       <Project>{c667a0ad-361d-468e-8da4-b5025d2fa9d6}</Project>
       <Name>LevelDBEngine</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Rotown\Rotown.csproj">
+      <Project>{77E458E5-37EE-4D82-92EB-DCB64092A29B}</Project>
+      <Name>Rotown</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

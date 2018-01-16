@@ -6,20 +6,19 @@ using System.Threading.Tasks;
 
 namespace Rotown
 {
-    public interface IModel<IKey>
+    public interface IModel
     {
-        IKey Key { get; }
     }
 
-    public interface IEngine<Key, Model, PartialResult, ContinuationToken>
-        where Model: IModel<Key>
+    public interface IEngine<Model, PartialResult, ContinuationToken>
+        where Model: IModel
     {
-        Task<Model> Retrieve(Key key);
+        Task<Model> Retrieve(Model model);
 
         Task Save(Model model);
 
-        Task Delete(Key key);
+        Task Delete(Model model);
 
-        Task<PartialResult> Range(Key lowKey, Key highKey, int take, ContinuationToken ct);
+        Task<PartialResult> Range(Model low, Model high, int take, ContinuationToken ct);
     }
 }

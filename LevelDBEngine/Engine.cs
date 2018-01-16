@@ -8,10 +8,6 @@ using Rotown;
 
 namespace LevelDBEngine
 {
-    public abstract class Model<T>: IModel<string>
-    {
-        public abstract string Key { get; }
-    }
 
     public class PartialResult<T>
     {
@@ -20,8 +16,8 @@ namespace LevelDBEngine
         public string ContinuationToken { get; set; }
     }
 
-    public class Engine<T> : IEngine<string, T, PartialResult<T>, string>, IDisposable
-        where T: Model<T>
+    public class Engine<T> : IEngine<T, PartialResult<T>, string>, IDisposable
+        where T: Model<T>, LevelDBModel
     {
         private DB db;
         public Engine(string path, Options options=null)
@@ -33,8 +29,9 @@ namespace LevelDBEngine
             this.db = DB.Open(path, options);
         }
 
-        public async Task Delete(string key)
+        public async Task Delete(T model)
         {
+            var key = model.LevelDBKey;
             this.db.Delete(WriteOptions.Default, key);
             await Task.CompletedTask;
         }
@@ -44,8 +41,10 @@ namespace LevelDBEngine
             this.db.Dispose();
         }
 
-        public async Task<PartialResult<T>> Range(string lowKey, string highKey, int take = 20, string ct = null)
+        public async Task<PartialResult<T>> Range(T low, T high, int take = 20, string ct = null)
         {
+            var lowKey = low.LevelDBKey;
+            var highKey = high.LevelDBKey;
             var iter = this.db.NewIterator(ReadOptions.Default);
             if (!string.IsNullOrEmpty(ct))
             {
@@ -81,16 +80,25 @@ namespace LevelDBEngine
             }
         }
 
-        public async Task<T> Retrieve(string key)
+        public async Task<T> Retrieve(T model)
         {
-            var data = this.db.Get(ReadOptions.Default, key);
-            return await Task.FromResult<T>(BsonHelper.Deserialize<T>(data.ToArray()));
+            var key = model.LevelDBKey;
+            byte[] data = null;
+            try
+            {
+                data = this.db.Get(ReadOptions.Default, key).ToArray();
+            }
+            catch (LevelDBException dbe) when (dbe.Message.StartsWith("NotFound"))
+            {
+                return null;
+            }
+            return await Task.FromResult<T>(BsonHelper.Deserialize<T>(data));
         }
 
         public async Task Save(T model)
         {
             var data = BsonHelper.Serialize(model);
-            var key = model.Key;
+            var key = model.LevelDBKey;
             this.db.Put(WriteOptions.Default, key, data);
             await Task.CompletedTask;
         }
