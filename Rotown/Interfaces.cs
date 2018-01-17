@@ -3,22 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Rotown.Models;
 
 namespace Rotown
 {
-    public interface IModel
+    public interface IEngine<T>
+        where T: Model<T>, new()
     {
-    }
+        Task<T> Retrieve(T model);
 
-    public interface IEngine<Model, PartialResult, ContinuationToken>
-        where Model: IModel
-    {
-        Task<Model> Retrieve(Model model);
+        Task Save(T model);
 
-        Task Save(Model model);
+        Task Delete(T model);
 
-        Task Delete(Model model);
-
-        Task<PartialResult> Range(Model low, Model high, int take, ContinuationToken ct);
+        Task<PartialResult<T>> QuerySegmented(T low, T high, int take, string continuationToken);
     }
 }

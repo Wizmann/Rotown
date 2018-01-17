@@ -5,33 +5,34 @@ using System.Text;
 using System.Threading.Tasks;
 using LevelDB;
 using Rotown;
+using Rotown.Models;
 
 namespace LevelDBEngine
 {
-
-    public class PartialResult<T>
-    {
-        public IEnumerable<Model<T>> Result { get; set; }
-
-        public string ContinuationToken { get; set; }
-    }
-
-    public class Engine<T> : IEngine<T, PartialResult<T>, string>, IDisposable
-        where T: Model<T>, LevelDBModel
+    public class Engine<T> : IEngine<T>, IDisposable
+        where T: Model<T>, new()
     {
         private DB db;
-        public Engine(string path, Options options=null)
+
+        public Func<T, byte[]> Serializer { get; set; } = BsonHelper.Serialize<T>;
+
+        public Func<byte[], T> Deserializer { get; set; } = BsonHelper.Deserialize<T>;
+
+        public Func<T, string> LevelDBKey { get; }
+
+        public Engine(string path, Func<T, string> key, Options options=null)
         {
             if (options == null)
             {
                 options = new Options { CreateIfMissing = true };
             }
             this.db = DB.Open(path, options);
+            this.LevelDBKey = key;
         }
 
         public async Task Delete(T model)
         {
-            var key = model.LevelDBKey;
+            var key = this.LevelDBKey(model);
             this.db.Delete(WriteOptions.Default, key);
             await Task.CompletedTask;
         }
@@ -41,10 +42,10 @@ namespace LevelDBEngine
             this.db.Dispose();
         }
 
-        public async Task<PartialResult<T>> Range(T low, T high, int take = 20, string ct = null)
+        public async Task<PartialResult<T>> QuerySegmented(T low, T high, int take = 20, string ct = null)
         {
-            var lowKey = low.LevelDBKey;
-            var highKey = high.LevelDBKey;
+            var lowKey = this.LevelDBKey(low);
+            var highKey = this.LevelDBKey(high);
             var iter = this.db.NewIterator(ReadOptions.Default);
             if (!string.IsNullOrEmpty(ct))
             {
@@ -59,7 +60,7 @@ namespace LevelDBEngine
             int count = 0;
             for (/* pass */; iter.Valid() && iter.Key() < highKey; iter.Next())
             {
-                result.Add(BsonHelper.Deserialize<T>(iter.Value().ToArray()));
+                result.Add(this.Deserializer(iter.Value().ToArray()));
                 count++;
 
                 if (count == take)
@@ -82,7 +83,7 @@ namespace LevelDBEngine
 
         public async Task<T> Retrieve(T model)
         {
-            var key = model.LevelDBKey;
+            var key = this.LevelDBKey(model);
             byte[] data = null;
             try
             {
@@ -92,13 +93,13 @@ namespace LevelDBEngine
             {
                 return null;
             }
-            return await Task.FromResult<T>(BsonHelper.Deserialize<T>(data));
+            return await Task.FromResult<T>(this.Deserializer(data));
         }
 
         public async Task Save(T model)
         {
-            var data = BsonHelper.Serialize(model);
-            var key = model.LevelDBKey;
+            var data = this.Serializer(model);
+            var key = this.LevelDBKey(model);
             this.db.Put(WriteOptions.Default, key, data);
             await Task.CompletedTask;
         }

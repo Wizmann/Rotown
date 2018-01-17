@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LevelDBEngine", "LevelDBEng
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LevelDBEngineTest", "LevelDBEngineTest\LevelDBEngineTest.csproj", "{921D7ED1-886E-461D-9D8F-34F4241DDE92}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureTableEngine", "AzureTableEngine\AzureTableEngine.csproj", "{1977D79C-2F4B-46B9-8794-E784073FD82B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{921D7ED1-886E-461D-9D8F-34F4241DDE92}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{921D7ED1-886E-461D-9D8F-34F4241DDE92}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{921D7ED1-886E-461D-9D8F-34F4241DDE92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1977D79C-2F4B-46B9-8794-E784073FD82B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1977D79C-2F4B-46B9-8794-E784073FD82B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1977D79C-2F4B-46B9-8794-E784073FD82B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1977D79C-2F4B-46B9-8794-E784073FD82B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -9,7 +9,17 @@ namespace LevelDBEngineTest
     [TestClass]
     public class TestCRUD
     {
-        public class MyModel: Model<MyModel>, LevelDBModel
+        public static Engine<MyModel> MyModelEngine 
+            = new LevelDBEngine.Engine<MyModel>("MyModel.leveldb", (m) => m.Id.ToString());
+
+        public static Engine<MyJsonModel> MyJsonModelEngine
+            = new LevelDBEngine.Engine<MyJsonModel>("MyJsonModel.leveldb", (m) => m.Id.ToString())
+            {
+                Serializer = JsonHelper.Serialize<MyJsonModel>,
+                Deserializer = JsonHelper.Deserialize<MyJsonModel>
+            };
+
+        public class MyModel: Model<MyModel>
         {
             public Guid Id { get; set; }
 
@@ -19,21 +29,28 @@ namespace LevelDBEngineTest
 
             public int Score { get; set; }
 
-            public string LevelDBKey
-            {
-                get
-                {
-                    return Id.ToString();
-                }
-            }
+            protected override IEngine<MyModel> Engine { get; } = MyModelEngine;
+        }
+
+        public class MyJsonModel: Model<MyJsonModel>
+        {
+            public Guid Id { get; set; }
+
+            public string Name { get; set; }
+
+            public byte[] Image { get; set; }
+
+            public int Score { get; set; }
+
+            protected override IEngine<MyJsonModel> Engine { get; } = MyJsonModelEngine;
         }
 
         [TestMethod]
         public async Task TestRetrieve()
         {
-            var e = new Engine<MyModel>($"{Guid.NewGuid()}.levdldb");
-
             var id1 = Guid.NewGuid();
+            var id2 = Guid.NewGuid();
+
             var m1 = new MyModel()
             {
                 Id = id1,
@@ -42,17 +59,33 @@ namespace LevelDBEngineTest
                 Image = id1.ToByteArray(),
             };
 
-            await e.Save(m1);
-            var m2 = await e.Retrieve(new MyModel() { Id = id1 });
+            await m1.Save();
+            var m2 = await MyModel.Objects.Retrieve(new MyModel() { Id = id1 });
 
             Assert.AreEqual(m1.Name, m2.Name);
             Assert.AreEqual(m1.Score, m2.Score);
             CollectionAssert.AreEqual(m1.Image, m2.Image);
 
-            await e.Delete(new MyModel() { Id = id1 });
-            var m3 = await e.Retrieve(new MyModel() { Id = id1 });
+            await m2.Delete();
+            var m3 = await MyModel.Objects.Retrieve(new MyModel() { Id = id1 });
 
             Assert.IsNull(m3);
+
+            var m4 = new MyJsonModel()
+            {
+                Id = id2,
+                Name = id2.ToString(),
+                Score = 2,
+                Image = id2.ToByteArray(),
+            };
+
+            await m4.Save();
+
+            var m5 = await MyJsonModel.Objects.Retrieve(new MyJsonModel() { Id = id2 });
+            Assert.AreEqual(m4.Id, m5.Id);
+            Assert.AreEqual(m4.Name, m5.Name);
+            Assert.AreEqual(m4.Score, m5.Score);
+            CollectionAssert.AreEqual(m4.Image, m5.Image);
         }
     }
 }
