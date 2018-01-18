@@ -6,15 +6,49 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Rotown.Models;
+using Microsoft.WindowsAzure.Storage;
 
 namespace AzureTableEngine
 {
     public class Engine<T> : IEngine<T>
-        where T : Model<T>, new()
+        where T : Model<T>, IAzureTableModel, new()
     {
-        public Task Delete(T model)
+        private CloudStorageAccount StorageAccount { get; set; }
+
+        private string TableName { get; set; }
+
+        private CloudTableClient Client { get; set; }
+
+        private CloudTable Table { get; set; }
+
+        public Engine(CloudStorageAccount account, string tableName="")
         {
-            throw new NotImplementedException();
+            this.StorageAccount = account;
+
+            if (string.IsNullOrEmpty(tableName))
+            {
+                tableName = typeof(T).Name;
+            }
+            this.TableName = tableName;
+
+            this.Client = this.StorageAccount.CreateCloudTableClient();
+            this.Table = this.Client.GetTableReference(this.TableName);
+
+            this.Table.CreateIfNotExists();
+        }
+
+        public async Task Delete(T model)
+        {
+            var key = model.Key();
+            var entity = new TableEntity()
+            {
+                PartitionKey = key.PartitionKey,
+                RowKey = key.RowKey,
+                ETag = "*",
+            };
+            var op = TableOperation.Delete(entity);
+
+            await this.Table.ExecuteAsync(op);
         }
 
         public Task<PartialResult<T>> QuerySegmented(T low, T high, int take, string continuationToken)
@@ -22,14 +56,25 @@ namespace AzureTableEngine
             throw new NotImplementedException();
         }
 
-        public Task<T> Retrieve(T model)
+        public async Task<T> Retrieve(T model)
         {
-            throw new NotImplementedException();
+            var key = model.Key();
+            var op = TableOperation.Retrieve<EntityAdapter<T>>(key.PartitionKey, key.RowKey);
+            var result = await this.Table.ExecuteAsync(op);
+            return (result.Result as EntityAdapter<T>)?.InnerObject;
         }
 
-        public Task Save(T model)
+        public async Task Save(T model)
         {
-            throw new NotImplementedException();
+            var key = model.Key();
+            var entity = new EntityAdapter<T>(model)
+            {
+                PartitionKey = key.PartitionKey,
+                RowKey = key.RowKey,
+            };
+
+            var op = TableOperation.InsertOrReplace(entity);
+            await this.Table.ExecuteAsync(op);
         }
     }
 }

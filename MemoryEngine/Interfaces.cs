@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MemoryEngine
+namespace MemoryDBEngine
 {
-    public class Class1
+    public interface IMemoryDBModel
     {
+        string Key();
     }
 }

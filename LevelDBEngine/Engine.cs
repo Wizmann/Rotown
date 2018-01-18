@@ -10,7 +10,7 @@ using Rotown.Models;
 namespace LevelDBEngine
 {
     public class Engine<T> : IEngine<T>, IDisposable
-        where T: Model<T>, new()
+        where T: Model<T>, ILevelDBModel, new()
     {
         private DB db;
 
@@ -18,21 +18,18 @@ namespace LevelDBEngine
 
         public Func<byte[], T> Deserializer { get; set; } = BsonHelper.Deserialize<T>;
 
-        public Func<T, string> LevelDBKey { get; }
-
-        public Engine(string path, Func<T, string> key, Options options=null)
+        public Engine(string path, Options options=null)
         {
             if (options == null)
             {
                 options = new Options { CreateIfMissing = true };
             }
             this.db = DB.Open(path, options);
-            this.LevelDBKey = key;
         }
 
         public async Task Delete(T model)
         {
-            var key = this.LevelDBKey(model);
+            var key = model.Key();
             this.db.Delete(WriteOptions.Default, key);
             await Task.CompletedTask;
         }
@@ -44,8 +41,8 @@ namespace LevelDBEngine
 
         public async Task<PartialResult<T>> QuerySegmented(T low, T high, int take = 20, string ct = null)
         {
-            var lowKey = this.LevelDBKey(low);
-            var highKey = this.LevelDBKey(high);
+            var lowKey = low.Key();
+            var highKey = high.Key();
             var iter = this.db.NewIterator(ReadOptions.Default);
             if (!string.IsNullOrEmpty(ct))
             {
@@ -83,7 +80,7 @@ namespace LevelDBEngine
 
         public async Task<T> Retrieve(T model)
         {
-            var key = this.LevelDBKey(model);
+            var key = model.Key();
             byte[] data = null;
             try
             {
@@ -99,7 +96,7 @@ namespace LevelDBEngine
         public async Task Save(T model)
         {
             var data = this.Serializer(model);
-            var key = this.LevelDBKey(model);
+            var key = model.Key();
             this.db.Put(WriteOptions.Default, key, data);
             await Task.CompletedTask;
         }

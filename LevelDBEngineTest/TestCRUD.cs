@@ -9,17 +9,17 @@ namespace LevelDBEngineTest
     [TestClass]
     public class TestCRUD
     {
-        public static Engine<MyModel> MyModelEngine 
-            = new LevelDBEngine.Engine<MyModel>("MyModel.leveldb", (m) => m.Id.ToString());
+        public static Engine<MyModel> MyModelEngine
+            = new LevelDBEngine.Engine<MyModel>("MyModel.leveldb");
 
         public static Engine<MyJsonModel> MyJsonModelEngine
-            = new LevelDBEngine.Engine<MyJsonModel>("MyJsonModel.leveldb", (m) => m.Id.ToString())
+            = new LevelDBEngine.Engine<MyJsonModel>("MyJsonModel.leveldb")
             {
                 Serializer = JsonHelper.Serialize<MyJsonModel>,
                 Deserializer = JsonHelper.Deserialize<MyJsonModel>
             };
 
-        public class MyModel: Model<MyModel>
+        public class MyModel: Model<MyModel>, ILevelDBModel
         {
             public Guid Id { get; set; }
 
@@ -30,9 +30,14 @@ namespace LevelDBEngineTest
             public int Score { get; set; }
 
             protected override IEngine<MyModel> Engine { get; } = MyModelEngine;
+
+            public string Key()
+            {
+                return this.Id.ToString();
+            }
         }
 
-        public class MyJsonModel: Model<MyJsonModel>
+        public class MyJsonModel: Model<MyJsonModel>, ILevelDBModel
         {
             public Guid Id { get; set; }
 
@@ -43,6 +48,10 @@ namespace LevelDBEngineTest
             public int Score { get; set; }
 
             protected override IEngine<MyJsonModel> Engine { get; } = MyJsonModelEngine;
+            public string Key()
+            {
+                return this.Id.ToString();
+            }
         }
 
         [TestMethod]
